@@ -7,6 +7,7 @@ import { RegisterInput } from '../types/RegisterInput'
 import { LoginInput } from '../types/LoginInput'
 import { validateRegisterInput } from '../utils/validateRegisterInput'
 import { Context } from '../types/Context'
+import { COOKIE_NAME } from '../constants'
 
 @Resolver()
 export class UserResolver {
@@ -18,6 +19,7 @@ export class UserResolver {
   @Mutation((_return) => UserMutationResponse)
   async register(
     @Arg('registerInput') registerInput: RegisterInput,
+    @Ctx() { req }: Context,
   ): Promise<UserMutationResponse> {
     try {
       const validateRegisterInputErrors = validateRegisterInput(registerInput)
@@ -54,11 +56,13 @@ export class UserResolver {
         username,
         password: hashedPassword,
       })
+      await newUser.save()
+      req.session.userId = newUser.id
       return {
         code: 201,
         success: true,
         message: 'User registered successfully!',
-        user: await User.save(newUser),
+        user: newUser,
       }
     } catch (error) {
       return {
@@ -120,5 +124,19 @@ export class UserResolver {
         message: `Internal server error ${error.message}`,
       }
     }
+  }
+
+  @Mutation((_return) => Boolean)
+  logout(@Ctx() { req, res }: Context): Promise<boolean> {
+    return new Promise((resolve, _reject) => {
+      res.clearCookie(COOKIE_NAME)
+      req.session.destroy((error) => {
+        if (error) {
+          console.log('SESSION ERROR', error)
+          resolve(false)
+        }
+        resolve(true)
+      })
+    })
   }
 }

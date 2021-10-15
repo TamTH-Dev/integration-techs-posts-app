@@ -8,10 +8,12 @@ import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-co
 import mongoose from 'mongoose'
 import session from 'express-session'
 import MongoStore from 'connect-mongo'
+import cors from 'cors'
 
 import { User } from './entities/User'
 import { Post } from './entities/Post'
 import { UserResolver } from './resolvers/user'
+import { PostResolver } from './resolvers/post'
 import { COOKIE_NAME, __prod__ } from './constants'
 import { Context } from './types/Context'
 
@@ -28,6 +30,13 @@ const main = async () => {
 
   const app = express()
 
+  app.use(
+    cors({
+      origin: '*',
+      credentials: true,
+    }),
+  )
+
   // Session/Cookie store
   await mongoose.connect(process.env.SESSION_DB as string)
   console.log('Connected to Atlas')
@@ -35,7 +44,9 @@ const main = async () => {
   app.use(
     session({
       name: COOKIE_NAME,
-      store: MongoStore.create({ mongoUrl: process.env.SESSION_DB }),
+      store: MongoStore.create({
+        mongoUrl: process.env.SESSION_DB,
+      }),
       cookie: {
         maxAge: 1000 * 60 * 60, // 1 hour
         httpOnly: true, // JS frontend cannot access the cookie
@@ -49,7 +60,10 @@ const main = async () => {
   )
 
   const apolloServer = new ApolloServer({
-    schema: await buildSchema({ resolvers: [UserResolver], validate: false }),
+    schema: await buildSchema({
+      resolvers: [UserResolver, PostResolver],
+      validate: false,
+    }),
     context: ({ req, res }): Context => ({ req, res }),
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
   })
