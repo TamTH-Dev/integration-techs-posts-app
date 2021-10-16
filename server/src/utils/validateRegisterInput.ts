@@ -17,7 +17,7 @@ export const validateRegisterInput = (registerInput: RegisterInput) => {
 
   if (registerInput.username.includes('@')) {
     return {
-      message: 'Invalid usernmae',
+      message: 'Invalid username',
       errors: [
         { field: 'username', message: 'Username cannot include @ symbol' },
       ],

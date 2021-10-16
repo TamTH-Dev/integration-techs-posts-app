@@ -43,7 +43,7 @@ export class UserResolver {
           errors: [
             {
               field: existingUser.username === username ? 'username' : 'email',
-              message: 'Username or email alreayd taken',
+              message: 'Username or email already taken',
             },
           ],
         }

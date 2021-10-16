@@ -9,6 +9,7 @@ import { checkAuth } from '../middleware/checkAuth'
 @Resolver()
 export class PostResolver {
   @Mutation((_return) => PostMutationResponse)
+  @UseMiddleware(checkAuth)
   async createPost(
     @Arg('createPostInput') { title, text }: CreatePostInput,
   ): Promise<PostMutationResponse> {
@@ -54,6 +55,7 @@ export class PostResolver {
   }
 
   @Mutation((_return) => PostMutationResponse)
+  @UseMiddleware(checkAuth)
   async updatePost(
     @Arg('updatePostInput') { id, title, text }: UpdatePostInput,
   ): Promise<PostMutationResponse> {
