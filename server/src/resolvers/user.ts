@@ -11,9 +11,12 @@ import { COOKIE_NAME } from '../constants'
 
 @Resolver()
 export class UserResolver {
-  @Query((_return) => String)
-  demo(): string {
-    return 'Hello world'
+  @Query((_return) => User, { nullable: true })
+  async me(@Ctx() { req }: Context): Promise<User | undefined | null> {
+    const { userId } = req.session
+    if (!userId) return null
+    const user = await User.findOne(userId)
+    return user
   }
 
   @Mutation((_return) => UserMutationResponse)
@@ -43,7 +46,10 @@ export class UserResolver {
           errors: [
             {
               field: existingUser.username === username ? 'username' : 'email',
-              message: 'Username or email already taken',
+              message:
+                existingUser.username === username
+                  ? 'Username already taken'
+                  : 'Email already taken',
             },
           ],
         }
