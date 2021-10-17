@@ -99,8 +99,11 @@ export type Post = {
   createdAt: Scalars['DateTime']
   id: Scalars['ID']
   text: Scalars['String']
+  textSnippet: Scalars['String']
   title: Scalars['String']
   updatedAt: Scalars['DateTime']
+  user: User
+  userId: Scalars['Float']
 }
 
 export type PostMutationResponse = IMutationResponse & {
@@ -140,6 +143,7 @@ export type User = {
   createdAt: Scalars['DateTime']
   email: Scalars['String']
   id: Scalars['ID']
+  posts: Array<Post>
   updatedAt: Scalars['DateTime']
   username: Scalars['String']
 }
@@ -291,6 +295,8 @@ export type GetPostsQuery = {
         text: string
         createdAt: any
         updatedAt: any
+        textSnippet: string
+        user: { __typename?: 'User'; username: string }
       }>
     | null
     | undefined
@@ -626,6 +632,10 @@ export const GetPostsDocument = gql`
       text
       createdAt
       updatedAt
+      textSnippet
+      user {
+        username
+      }
     }
   }
 `

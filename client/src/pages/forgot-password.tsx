@@ -11,9 +11,7 @@ import NextLink from 'next/link'
 
 const ForgotPassword = () => {
   const { data: authData, loading: authLoading } = useCheckAuth()
-
   const initialValues = { email: '' }
-
   const [forgotPassword, { loading, data }] = useForgotPasswordMutation()
 
   const onForgotPasswordSubmit = async (values: ForgotPasswordInput) => {
@@ -28,7 +26,7 @@ const ForgotPassword = () => {
     )
   } else
     return (
-      <Wrapper>
+      <Wrapper size="small">
         <Formik initialValues={initialValues} onSubmit={onForgotPasswordSubmit}>
           {({ isSubmitting }) =>
             !loading && data ? (
