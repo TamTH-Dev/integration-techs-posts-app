@@ -1,5 +1,6 @@
 import { Arg, Ctx, Mutation, Query, Resolver } from 'type-graphql'
 import argon2 from 'argon2'
+import { v4 as uuidv4 } from 'uuid'
 
 import { User } from '../entities/User'
 import { UserMutationResponse } from '../types/UserMutationResponse'
@@ -8,6 +9,10 @@ import { LoginInput } from '../types/LoginInput'
 import { validateRegisterInput } from '../utils/validateRegisterInput'
 import { Context } from '../types/Context'
 import { COOKIE_NAME } from '../constants'
+import { ForgotPasswordInput } from '../types/ForgotPasswordInput'
+import { sendEmail } from '../utils/sendEmail'
+import { TokenModel } from '../models/Token'
+import { ChangePasswordInput } from '../types/ChangePasswordInput'
 
 @Resolver()
 export class UserResolver {
@@ -144,5 +149,124 @@ export class UserResolver {
         resolve(true)
       })
     })
+  }
+
+  @Mutation((_return) => Boolean)
+  async forgotPassword(
+    @Arg('forgotPasswordInput') forgotPasswordInput: ForgotPasswordInput,
+  ): Promise<boolean> {
+    try {
+      const user = await User.findOne({ email: forgotPasswordInput.email })
+      if (!user) return true
+
+      // Delete duplicate token
+      await TokenModel.findOneAndDelete({ userId: user.id.toString() })
+
+      // Create new token
+      const resetToken = uuidv4()
+      const hashedResetToken = await argon2.hash(resetToken)
+
+      // Save token to database
+      const newToken = new TokenModel({
+        userId: user.id.toString(),
+        token: hashedResetToken,
+      })
+      await newToken.save()
+
+      // Send mail to user
+      await sendEmail(
+        forgotPasswordInput.email,
+        `<a href="http://localhost:3000/change-password?token=${resetToken}&userId=${user.id}">Click here to reset your password</a>`,
+      )
+    } catch (error) {
+      console.error(error)
+    }
+    return true
+  }
+
+  @Mutation((_return) => UserMutationResponse)
+  async changePassword(
+    @Arg('token') token: string,
+    @Arg('userId') userId: string,
+    @Arg('changePasswordInput') changePasswordInput: ChangePasswordInput,
+    @Ctx() { req }: Context,
+  ): Promise<UserMutationResponse> {
+    if (changePasswordInput.newPassword.length <= 2) {
+      return {
+        code: 400,
+        success: false,
+        message: 'Invalid password',
+        errors: [
+          {
+            field: 'newPassword',
+            message: 'Length must be greater than 2',
+          },
+        ],
+      }
+    }
+    try {
+      const resetPasswordTokenRecord = await TokenModel.findOne({ userId })
+      if (!resetPasswordTokenRecord) {
+        return {
+          code: 400,
+          success: false,
+          message: 'Invalid or expired password reset token',
+          errors: [
+            {
+              field: 'token',
+              message: 'Invalid or expired password reset token',
+            },
+          ],
+        }
+      }
+      const resetPasswordTokenValid = argon2.verify(
+        resetPasswordTokenRecord.token,
+        token,
+      )
+      if (!resetPasswordTokenValid) {
+        return {
+          code: 400,
+          success: false,
+          message: 'Invalid or expired password reset token',
+          errors: [
+            {
+              field: 'token',
+              message: 'Invalid or expired password reset token',
+            },
+          ],
+        }
+      }
+      const parsedUserId = parseInt(userId)
+      const user = await User.findOne(parsedUserId)
+      if (!user) {
+        return {
+          code: 400,
+          success: false,
+          message: 'User no longer exists',
+          errors: [
+            {
+              field: 'token',
+              message: 'User no longer exists',
+            },
+          ],
+        }
+      }
+      const updatedPassword = await argon2.hash(changePasswordInput.newPassword)
+      await User.update({ id: parsedUserId }, { password: updatedPassword })
+      await resetPasswordTokenRecord.deleteOne()
+      req.session.userId = user.id
+      return {
+        code: 200,
+        success: true,
+        message: 'User password reset successfully',
+        user,
+      }
+    } catch (error) {
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      }
+    }
   }
 }
