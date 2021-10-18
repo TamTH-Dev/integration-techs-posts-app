@@ -1,0 +1,13 @@
+mutation CreatePost($createPostInput: CreatePostInput!) {
+  createPost(createPostInput: $createPostInput) {
+    code
+    message
+    success
+    errors {
+      ...fieldError
+    }
+    post {
+      ...postWithUserInfo
+    }
+  }
+}

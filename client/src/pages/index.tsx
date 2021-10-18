@@ -1,6 +1,7 @@
 import React from 'react'
 import {
   Box,
+  Button,
   Flex,
   Heading,
   Link,
@@ -9,43 +10,66 @@ import {
   Text,
 } from '@chakra-ui/react'
 import NextLink from 'next/link'
+import { NetworkStatus } from '@apollo/client'
 
 import Layout from '../components/Layout'
 import { GetPostsDocument, useGetPostsQuery } from '../generated/graphql'
 import { addApolloState, initializeApollo } from '../lib/apolloClient'
 import PostButtons from '../components/PostButtons'
 
+const limit = 3
+
 const Index = () => {
-  const { data, loading } = useGetPostsQuery()
+  const { data, loading, fetchMore, networkStatus } = useGetPostsQuery({
+    variables: { limit },
+    notifyOnNetworkStatusChange: true, // Components which use useQuery rerender on network status change
+  })
+
+  const loadingMorePosts = networkStatus === NetworkStatus.fetchMore
+
+  const loadMorePosts = () =>
+    fetchMore({ variables: { cursor: data?.getPosts?.cursor } })
+
   return (
     <>
       <Layout>
-        {loading ? (
-          <Flex h="100vh" justifyContent="center" alignItems="center">
+        <Stack spacing={8}>
+          {data?.getPosts?.paginatedPosts.map((post) => (
+            <Flex key={post.id} p={5} shadow="md" borderWidth="1px">
+              {/* <UpvoteSection post={post} /> */}
+              <Box flex={1}>
+                <NextLink href={`/post/${post.id}`}>
+                  <Link>
+                    <Heading fontSize="xl">{post.title}</Heading>
+                  </Link>
+                </NextLink>
+                <Text>Posted by {post.user.username}</Text>
+                <Flex align="center">
+                  <Text mt={4}>{post.textSnippet}</Text>
+                  <Box ml="auto">
+                    <PostButtons />
+                  </Box>
+                </Flex>
+              </Box>
+            </Flex>
+          ))}
+        </Stack>
+        {loading && (
+          <Flex mt={10} justifyContent="center" alignItems="center">
             <Spinner />
           </Flex>
-        ) : (
-          <Stack spacing={8}>
-            {data?.getPosts?.map((post) => (
-              <Flex key={post.id} p={5} shadow="md" borderWidth="1px">
-                {/* <UpvoteSection post={post} /> */}
-                <Box flex={1}>
-                  <NextLink href={`/post/${post.id}`}>
-                    <Link>
-                      <Heading fontSize="xl">{post.title}</Heading>
-                    </Link>
-                  </NextLink>
-                  <Text>Posted by {post.user.username}</Text>
-                  <Flex align="center">
-                    <Text mt={4}>{post.textSnippet}</Text>
-                    <Box ml="auto">
-                      <PostButtons />
-                    </Box>
-                  </Flex>
-                </Box>
-              </Flex>
-            ))}
-          </Stack>
+        )}
+        {data?.getPosts?.hasMore && (
+          <Flex>
+            <Button
+              m="auto"
+              my={8}
+              isLoading={loadingMorePosts}
+              onClick={loadMorePosts}
+            >
+              {loadingMorePosts ? 'Loading' : 'Show more'}
+            </Button>
+          </Flex>
         )}
       </Layout>
     </>
@@ -57,6 +81,7 @@ export const getStaticProps = async () => {
 
   await apolloClient.query({
     query: GetPostsDocument,
+    variables: { limit },
   })
 
   return addApolloState(apolloClient, {
