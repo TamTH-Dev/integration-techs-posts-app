@@ -6,7 +6,7 @@ fragment postWithUserInfo on Post {
   updatedAt
   textSnippet
   user {
+    id
     username
-    email
   }
 }

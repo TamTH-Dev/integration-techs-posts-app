@@ -1,26 +1,23 @@
 import React from 'react'
-import {
-  Box,
-  Button,
-  Flex,
-  Heading,
-  Link,
-  Spinner,
-  Stack,
-  Text,
-} from '@chakra-ui/react'
+import { Box, Button, Flex, Heading, Link, Stack, Text } from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { NetworkStatus } from '@apollo/client'
 
 import Layout from '../components/Layout'
-import { GetPostsDocument, useGetPostsQuery } from '../generated/graphql'
+import {
+  GetPostsDocument,
+  useGetPostsQuery,
+  useMeQuery,
+} from '../generated/graphql'
 import { addApolloState, initializeApollo } from '../lib/apolloClient'
 import PostButtons from '../components/PostButtons'
 
-const limit = 3
+const limit = 5
 
 const Index = () => {
-  const { data, loading, fetchMore, networkStatus } = useGetPostsQuery({
+  const { data: meData } = useMeQuery()
+
+  const { data, fetchMore, networkStatus } = useGetPostsQuery({
     variables: { limit },
     notifyOnNetworkStatusChange: true, // Components which use useQuery rerender on network status change
   })
@@ -33,7 +30,7 @@ const Index = () => {
   return (
     <>
       <Layout>
-        <Stack spacing={8}>
+        <Stack spacing={8} mb={10}>
           {data?.getPosts?.paginatedPosts.map((post) => (
             <Flex key={post.id} p={5} shadow="md" borderWidth="1px">
               {/* <UpvoteSection post={post} /> */}
@@ -47,18 +44,15 @@ const Index = () => {
                 <Flex align="center">
                   <Text mt={4}>{post.textSnippet}</Text>
                   <Box ml="auto">
-                    <PostButtons />
+                    {meData?.me?.id === post.user.id && (
+                      <PostButtons postId={post.id} />
+                    )}
                   </Box>
                 </Flex>
               </Box>
             </Flex>
           ))}
         </Stack>
-        {loading && (
-          <Flex mt={10} justifyContent="center" alignItems="center">
-            <Spinner />
-          </Flex>
-        )}
         {data?.getPosts?.hasMore && (
           <Flex>
             <Button

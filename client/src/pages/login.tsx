@@ -18,10 +18,14 @@ import { useCheckAuth } from '../utils/useCheckAuth'
 
 const Login = () => {
   const router = useRouter()
+
   const { data: authData, loading: authLoading } = useCheckAuth()
+
   const [loginUser, { error }] = useLoginMutation()
-  const initialValues: LoginInput = { usernameOrEmail: '', password: '' }
+
   const toast = useToast()
+
+  const initialValues: LoginInput = { usernameOrEmail: '', password: '' }
 
   const onLoginSubmit = async (
     values: LoginInput,

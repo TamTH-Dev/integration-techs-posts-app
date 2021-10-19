@@ -24,7 +24,7 @@ const ForgotPassword = () => {
         <Spinner />
       </Flex>
     )
-  } else
+  } else {
     return (
       <Wrapper size="small">
         <Formik initialValues={initialValues} onSubmit={onForgotPasswordSubmit}>
@@ -60,6 +60,7 @@ const ForgotPassword = () => {
         </Formik>
       </Wrapper>
     )
+  }
 }
 
 export default ForgotPassword

@@ -42,9 +42,14 @@ const Navbar = () => {
     )
   } else {
     body = (
-      <Button isLoading={useLogoutMutationLoading} onClick={onLogout}>
-        Logout
-      </Button>
+      <Flex>
+        <NextLink href="/create-post">
+          <Button mr={4}>Create post</Button>
+        </NextLink>
+        <Button isLoading={useLogoutMutationLoading} onClick={onLogout}>
+          Logout
+        </Button>
+      </Flex>
     )
   }
 
