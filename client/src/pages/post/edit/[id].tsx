@@ -7,7 +7,6 @@ import {
   Box,
   Button,
   Flex,
-  Link,
   Spinner,
 } from '@chakra-ui/react'
 import { Form, Formik } from 'formik'
@@ -89,7 +88,7 @@ const PostEdit = () => {
         },
       },
     })
-    router.push('/')
+    router.back()
   }
 
   return (

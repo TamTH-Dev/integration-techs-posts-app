@@ -7,7 +7,6 @@ import {
   Button,
   Flex,
   Heading,
-  IconButton,
   Spinner,
 } from '@chakra-ui/react'
 import { GetStaticPaths, GetStaticProps } from 'next'
@@ -24,7 +23,7 @@ import {
 } from '../../generated/graphql'
 import Layout from '../../components/Layout'
 import { addApolloState, initializeApollo } from '../../lib/apolloClient'
-import { EditIcon } from '@chakra-ui/icons'
+import PostButtons from '../../components/PostButtons'
 
 const Post = () => {
   const router = useRouter()
@@ -65,15 +64,11 @@ const Post = () => {
     <Layout>
       <Heading mb={4}>{data.getPost.title}</Heading>
       <Box mb={4}>{data.getPost.text}</Box>
-      <Flex mt={6} alignItems="center">
+      <Flex mt={6} alignItems="center" justifyContent="space-between">
         {meData?.me?.id.toString() === data.getPost.userId.toString() && (
-          <Box justifySelf="flex-start">
-            <NextLink href={`/post/edit/${data.getPost.id}`}>
-              <IconButton icon={<EditIcon />} aria-label="edit" mr={4} />
-            </NextLink>
-          </Box>
+          <PostButtons postId={data.getPost.id} />
         )}
-        <Box justifySelf="flex-end">
+        <Box>
           <NextLink href="/">
             <Button>Back to Home Page</Button>
           </NextLink>
