@@ -9,8 +9,10 @@ import {
   Root,
   Int,
   Ctx,
+  registerEnumType,
 } from 'type-graphql'
 import { LessThan } from 'typeorm'
+import { UserInputError } from 'apollo-server-core'
 
 import { Post } from '../entities/Post'
 import { CreatePostInput } from '../types/CreatePostInput'
@@ -20,21 +22,40 @@ import { checkAuth } from '../middleware/checkAuth'
 import { User } from '../entities/User'
 import { PaginatedPosts } from '../types/PaginatedPosts'
 import { Context } from '../types/Context'
+import { VoteType } from '../types/VoteType'
+import { Vote } from '../entities/Vote'
+
+registerEnumType(VoteType, {
+  name: 'VoteType',
+})
 
 @Resolver((_of) => Post)
 export class PostResolver {
   // Must explicit specify the object entity for resolver
-  @FieldResolver((_return) => String)
-  textSnippet(@Root() root: Post) {
+  @FieldResolver(() => String)
+  textSnippet(@Root() root: Post): string {
     return root.text.slice(0, 50)
   }
 
-  @FieldResolver((_return) => User)
-  async user(@Root() root: Post) {
+  @FieldResolver(() => User)
+  async user(@Root() root: Post): Promise<User | undefined> {
     return await User.findOne(root.userId)
   }
 
-  @Mutation((_return) => PostMutationResponse)
+  @FieldResolver(() => Int)
+  async voteType(
+    @Root() root: Post,
+    @Ctx() { req }: Context,
+  ): Promise<number> {
+    if (!req.session.userId) return 0
+    const existingVote = await Vote.findOne({
+      postId: root.id,
+      userId: req.session.userId,
+    })
+    return existingVote ? existingVote.value : 0
+  }
+
+  @Mutation(() => PostMutationResponse)
   @UseMiddleware(checkAuth)
   async createPost(
     @Arg('createPostInput') { title, text }: CreatePostInput,
@@ -62,7 +83,7 @@ export class PostResolver {
     }
   }
 
-  @Query((_return) => PaginatedPosts, { nullable: true })
+  @Query(() => PaginatedPosts, { nullable: true })
   async getPosts(
     @Arg('limit', () => Int) limit: number,
     @Arg('cursor', { nullable: true }) cursor?: string,
@@ -98,7 +119,7 @@ export class PostResolver {
     }
   }
 
-  @Query((_return) => Post, { nullable: true })
+  @Query(() => Post, { nullable: true })
   async getPost(
     @Arg('id', (_type) => ID!) id: number,
   ): Promise<Post | undefined | null> {
@@ -109,7 +130,7 @@ export class PostResolver {
     }
   }
 
-  @Mutation((_return) => PostMutationResponse)
+  @Mutation(() => PostMutationResponse)
   @UseMiddleware(checkAuth)
   async updatePost(
     @Arg('updatePostInput') { id, title, text }: UpdatePostInput,
@@ -149,7 +170,7 @@ export class PostResolver {
     }
   }
 
-  @Mutation((_return) => PostMutationResponse)
+  @Mutation(() => PostMutationResponse)
   @UseMiddleware(checkAuth)
   async deletePost(
     @Arg('id', (_type) => ID!) id: number,
@@ -177,6 +198,67 @@ export class PostResolver {
         success: true,
         message: 'Post deleted successfully',
       }
+    } catch (error) {
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error: ${error.message}`,
+      }
+    }
+  }
+
+  @Mutation(() => PostMutationResponse)
+  @UseMiddleware(checkAuth)
+  async vote(
+    @Arg('postId', () => Int) postId: number,
+    @Arg('voteValue', () => VoteType) voteValue: VoteType,
+    @Ctx() { req, connection }: Context,
+  ): Promise<PostMutationResponse> {
+    try {
+      return await connection.transaction(async (transactionEntityManager) => {
+        let post = await transactionEntityManager.findOne(Post, postId)
+        // Check whether post existed
+        if (!post) throw new UserInputError('Post not found')
+
+        const userId = req.session.userId
+
+        const existingVote = await transactionEntityManager.findOne(Vote, {
+          postId,
+          userId,
+        })
+
+        if (existingVote && existingVote.value !== voteValue) {
+          await transactionEntityManager.save(Vote, {
+            ...existingVote,
+            value: voteValue,
+          })
+          post = await transactionEntityManager.save(Post, {
+            ...post,
+            points: post.points + 2 * voteValue,
+          })
+        }
+
+        if (!existingVote) {
+          const newVote = transactionEntityManager.create(Vote, {
+            userId,
+            postId,
+            value: voteValue,
+          })
+          // Save vote record to db
+          await transactionEntityManager.save(newVote)
+
+          // Change points following user's action
+          post.points = post.points + voteValue
+          post = await transactionEntityManager.save(post)
+        }
+
+        return {
+          code: 200,
+          success: true,
+          message: 'Post voted',
+          post,
+        }
+      })
     } catch (error) {
       return {
         code: 500,

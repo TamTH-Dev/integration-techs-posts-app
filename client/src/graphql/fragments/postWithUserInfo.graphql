@@ -5,6 +5,8 @@ fragment postWithUserInfo on Post {
   createdAt
   updatedAt
   textSnippet
+  voteType
+  points
   user {
     id
     username

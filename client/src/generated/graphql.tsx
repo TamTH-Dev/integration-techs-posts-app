@@ -62,6 +62,7 @@ export type Mutation = {
   logout: Scalars['Boolean']
   register: UserMutationResponse
   updatePost: PostMutationResponse
+  vote: PostMutationResponse
 }
 
 export type MutationChangePasswordArgs = {
@@ -94,6 +95,11 @@ export type MutationUpdatePostArgs = {
   updatePostInput: UpdatePostInput
 }
 
+export type MutationVoteArgs = {
+  postId: Scalars['Int']
+  voteValue: VoteType
+}
+
 export type PaginatedPosts = {
   __typename?: 'PaginatedPosts'
   cursor: Scalars['DateTime']
@@ -106,12 +112,15 @@ export type Post = {
   __typename?: 'Post'
   createdAt: Scalars['DateTime']
   id: Scalars['ID']
+  points: Scalars['Float']
   text: Scalars['String']
   textSnippet: Scalars['String']
   title: Scalars['String']
   updatedAt: Scalars['DateTime']
   user: User
   userId: Scalars['Float']
+  voteType: Scalars['Float']
+  votes: Array<Vote>
 }
 
 export type PostMutationResponse = IMutationResponse & {
@@ -159,6 +168,7 @@ export type User = {
   posts: Array<Post>
   updatedAt: Scalars['DateTime']
   username: Scalars['String']
+  votes: Array<Vote>
 }
 
 export type UserMutationResponse = IMutationResponse & {
@@ -168,6 +178,19 @@ export type UserMutationResponse = IMutationResponse & {
   message?: Maybe<Scalars['String']>
   success: Scalars['Boolean']
   user?: Maybe<User>
+}
+
+export type Vote = {
+  __typename?: 'Vote'
+  post: Post
+  postId: Scalars['Float']
+  user: User
+  userId: Scalars['Float']
+}
+
+export enum VoteType {
+  Downvote = 'Downvote',
+  Upvote = 'Upvote',
 }
 
 export type FieldErrorFragment = {
@@ -201,6 +224,8 @@ export type PostMutationResponseFragment = {
         createdAt: any
         updatedAt: any
         textSnippet: string
+        voteType: number
+        points: number
         user: { __typename?: 'User'; id: string; username: string }
       }
     | null
@@ -215,6 +240,8 @@ export type PostWithUserInfoFragment = {
   createdAt: any
   updatedAt: any
   textSnippet: string
+  voteType: number
+  points: number
   user: { __typename?: 'User'; id: string; username: string }
 }
 
@@ -288,6 +315,8 @@ export type CreatePostMutation = {
           createdAt: any
           updatedAt: any
           textSnippet: string
+          voteType: number
+          points: number
           user: { __typename?: 'User'; id: string; username: string }
         }
       | null
@@ -319,6 +348,8 @@ export type DeletePostMutation = {
           createdAt: any
           updatedAt: any
           textSnippet: string
+          voteType: number
+          points: number
           user: { __typename?: 'User'; id: string; username: string }
         }
       | null
@@ -407,6 +438,42 @@ export type UpdatePostMutation = {
           createdAt: any
           updatedAt: any
           textSnippet: string
+          voteType: number
+          points: number
+          user: { __typename?: 'User'; id: string; username: string }
+        }
+      | null
+      | undefined
+  }
+}
+
+export type VoteMutationVariables = Exact<{
+  voteValue: VoteType
+  postId: Scalars['Int']
+}>
+
+export type VoteMutation = {
+  __typename?: 'Mutation'
+  vote: {
+    __typename?: 'PostMutationResponse'
+    code: number
+    message?: string | null | undefined
+    success: boolean
+    errors?:
+      | Array<{ __typename?: 'FieldError'; field: string; message: string }>
+      | null
+      | undefined
+    post?:
+      | {
+          __typename?: 'Post'
+          id: string
+          title: string
+          text: string
+          createdAt: any
+          updatedAt: any
+          textSnippet: string
+          voteType: number
+          points: number
           user: { __typename?: 'User'; id: string; username: string }
         }
       | null
@@ -435,6 +502,8 @@ export type GetPostsQuery = {
           createdAt: any
           updatedAt: any
           textSnippet: string
+          voteType: number
+          points: number
           user: { __typename?: 'User'; id: string; username: string }
         }>
       }
@@ -500,6 +569,8 @@ export const PostWithUserInfoFragmentDoc = gql`
     createdAt
     updatedAt
     textSnippet
+    voteType
+    points
     user {
       id
       username
@@ -947,6 +1018,52 @@ export type UpdatePostMutationResult = Apollo.MutationResult<UpdatePostMutation>
 export type UpdatePostMutationOptions = Apollo.BaseMutationOptions<
   UpdatePostMutation,
   UpdatePostMutationVariables
+>
+export const VoteDocument = gql`
+  mutation Vote($voteValue: VoteType!, $postId: Int!) {
+    vote(voteValue: $voteValue, postId: $postId) {
+      ...postMutationResponse
+    }
+  }
+  ${PostMutationResponseFragmentDoc}
+`
+export type VoteMutationFn = Apollo.MutationFunction<
+  VoteMutation,
+  VoteMutationVariables
+>
+
+/**
+ * __useVoteMutation__
+ *
+ * To run a mutation, you first call `useVoteMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useVoteMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [voteMutation, { data, loading, error }] = useVoteMutation({
+ *   variables: {
+ *      voteValue: // value for 'voteValue'
+ *      postId: // value for 'postId'
+ *   },
+ * });
+ */
+export function useVoteMutation(
+  baseOptions?: Apollo.MutationHookOptions<VoteMutation, VoteMutationVariables>,
+) {
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<VoteMutation, VoteMutationVariables>(
+    VoteDocument,
+    options,
+  )
+}
+export type VoteMutationHookResult = ReturnType<typeof useVoteMutation>
+export type VoteMutationResult = Apollo.MutationResult<VoteMutation>
+export type VoteMutationOptions = Apollo.BaseMutationOptions<
+  VoteMutation,
+  VoteMutationVariables
 >
 export const GetPostsDocument = gql`
   query GetPosts($limit: Int!, $cursor: String) {

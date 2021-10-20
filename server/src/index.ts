@@ -12,6 +12,7 @@ import cors from 'cors'
 
 import { User } from './entities/User'
 import { Post } from './entities/Post'
+import { Vote } from './entities/Vote'
 import { UserResolver } from './resolvers/user'
 import { PostResolver } from './resolvers/post'
 import { COOKIE_NAME, __prod__ } from './constants'
@@ -19,14 +20,14 @@ import { Context } from './types/Context'
 import { sendEmail } from './utils/sendEmail'
 
 const main = async () => {
-  await createConnection({
+  const connection = await createConnection({
     type: 'postgres',
     database: 'reddit',
     username: process.env.DB_USERNAME_DEV,
     password: process.env.DB_PASSWORD_DEV,
     logging: true,
     synchronize: true,
-    entities: [User, Post],
+    entities: [User, Post, Vote],
   })
 
   await sendEmail('demo@gmail.com', '<b>Hello world</b>')
@@ -67,7 +68,7 @@ const main = async () => {
       resolvers: [UserResolver, PostResolver],
       validate: false,
     }),
-    context: ({ req, res }): Context => ({ req, res }),
+    context: ({ req, res }): Context => ({ req, res, connection }),
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
   })
 

@@ -3,9 +3,7 @@ import { DeleteIcon, EditIcon } from '@chakra-ui/icons'
 import { Box, IconButton } from '@chakra-ui/react'
 import NextLink from 'next/link'
 
-import {
-  useDeletePostMutation,
-} from '../generated/graphql'
+import { useDeletePostMutation } from '../generated/graphql'
 import { useRouter } from 'next/router'
 
 interface PostButtonsProps {
@@ -41,7 +39,8 @@ const PostButtons = ({ postId }: PostButtonsProps) => {
         })
       },
     })
-    router.push('/')
+    // Redirect to Home Page if post is deleted in detail page
+    if (router.route !== '/') router.push('/')
   }
 
   return (
