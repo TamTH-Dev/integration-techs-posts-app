@@ -18,6 +18,7 @@ import { PostResolver } from './resolvers/post'
 import { COOKIE_NAME, __prod__ } from './constants'
 import { Context } from './types/Context'
 import { sendEmail } from './utils/sendEmail'
+import { buildDataLoaders } from './utils/dataLoaders'
 
 const main = async () => {
   const connection = await createConnection({
@@ -68,7 +69,7 @@ const main = async () => {
       resolvers: [UserResolver, PostResolver],
       validate: false,
     }),
-    context: ({ req, res }): Context => ({ req, res, connection }),
+    context: ({ req, res }): Context => ({ req, res, connection, dataLoaders: buildDataLoaders() }),
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
   })
 

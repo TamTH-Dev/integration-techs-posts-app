@@ -38,17 +38,20 @@ export class PostResolver {
   }
 
   @FieldResolver(() => User)
-  async user(@Root() root: Post): Promise<User | undefined> {
-    return await User.findOne(root.userId)
+  async user(
+    @Root() root: Post,
+    @Ctx() { dataLoaders: { userLoader } }: Context,
+  ): Promise<User | undefined> {
+    return await userLoader.load(root.userId)
   }
 
   @FieldResolver(() => Int)
   async voteType(
     @Root() root: Post,
-    @Ctx() { req }: Context,
+    @Ctx() { req, dataLoaders: { voteTypeLoader } }: Context,
   ): Promise<number> {
     if (!req.session.userId) return 0
-    const existingVote = await Vote.findOne({
+    const existingVote = await voteTypeLoader.load({
       postId: root.id,
       userId: req.session.userId,
     })
