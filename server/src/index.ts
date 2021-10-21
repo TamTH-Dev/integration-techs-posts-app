@@ -61,6 +61,8 @@ const main = async () => {
   await mongoose.connect(process.env.SESSION_DB as string)
   console.log('Connected to Atlas')
 
+  app.set('trust proxy', 1)
+
   app.use(
     session({
       name: COOKIE_NAME,
@@ -71,8 +73,7 @@ const main = async () => {
         maxAge: 1000 * 60 * 60, // 1 hour
         httpOnly: true, // JS frontend cannot access the cookie
         secure: __prod__, // Cookie only works in https
-        sameSite: 'lax', // Protection against CSRF
-        domain: __prod__ ? '.vercel.app' : undefined,
+        sameSite: 'none', // Protection against CSRF
       },
       secret: process.env.SESSION_SECRET as string,
       saveUninitialized: false, // Don't save empty sessions, right from the start

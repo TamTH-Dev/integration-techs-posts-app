@@ -195,6 +195,7 @@ export class PostResolver {
           message: 'Unauthorized',
         }
       }
+      await Vote.delete({ postId: id })
       await Post.delete({ id })
       return {
         code: 200,
