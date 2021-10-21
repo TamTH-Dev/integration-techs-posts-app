@@ -1,5 +1,6 @@
 import React from 'react'
 import { Box, Button, Flex, Heading, Link } from '@chakra-ui/react'
+import { gql, Reference } from '@apollo/client'
 import NextLink from 'next/link'
 
 import {
@@ -20,6 +21,27 @@ const Navbar = () => {
           cache.writeQuery<MeQuery>({
             query: MeDocument,
             data: { me: null },
+          })
+          cache.modify({
+            fields: {
+              getPosts(existing) {
+                existing.paginatedPosts.forEach((post: Reference) => {
+                  cache.writeFragment({
+                    id: post.__ref,
+                    fragment: gql`
+                      fragment VoteType on Post {
+                        voteType
+                      }
+                    `,
+                    data: {
+                      voteType: 0,
+                    },
+                  })
+                })
+
+                return existing
+              },
+            },
           })
         }
       },

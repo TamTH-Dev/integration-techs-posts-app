@@ -25,11 +25,11 @@ const VoteSection = ({ post }: VoteSectionProps) => {
   >('not-loading')
 
   const onVote = async (voteType: VoteType) => {
-    const demo =
+    const currentVoteType =
       post.voteType === VoteTypeValues.Upvote
         ? VoteType.Upvote
         : VoteType.Downvote
-    if (demo === voteType) return
+    if (voteType === currentVoteType) return
     setLoadingState(
       voteType === VoteType.Upvote ? 'upvote-loading' : 'downvote-loading',
     )
