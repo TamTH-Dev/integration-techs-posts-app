@@ -9,6 +9,7 @@ import mongoose from 'mongoose'
 import session from 'express-session'
 import MongoStore from 'connect-mongo'
 import cors from 'cors'
+import path from 'path'
 
 import { User } from './entities/User'
 import { Post } from './entities/Post'
@@ -17,27 +18,41 @@ import { UserResolver } from './resolvers/user'
 import { PostResolver } from './resolvers/post'
 import { COOKIE_NAME, __prod__ } from './constants'
 import { Context } from './types/Context'
-import { sendEmail } from './utils/sendEmail'
 import { buildDataLoaders } from './utils/dataLoaders'
 
 const main = async () => {
   const connection = await createConnection({
     type: 'postgres',
-    database: 'reddit',
-    username: process.env.DB_USERNAME_DEV,
-    password: process.env.DB_PASSWORD_DEV,
     logging: true,
-    synchronize: true,
     entities: [User, Post, Vote],
+    migrations: [path.join(__dirname, '/migrations/*')],
+    ...(__prod__
+      ? {
+          url: process.env.DATABASE_URL,
+          extra: {
+            ssl: {
+              rejectUnauthorized: false,
+            },
+          },
+          ssl: true,
+        }
+      : {
+          database: 'reddit',
+          username: process.env.DB_USERNAME_DEV,
+          password: process.env.DB_PASSWORD_DEV,
+          synchronize: true,
+        }),
   })
 
-  await sendEmail('demo@gmail.com', '<b>Hello world</b>')
+  if (__prod__) await connection.runMigrations()
 
   const app = express()
 
   app.use(
     cors({
-      origin: 'http://localhost:3000',
+      origin: __prod__
+        ? process.env.CORS_ORIGIN_PROD
+        : process.env.CORS_ORIGIN_DEV,
       credentials: true,
     }),
   )
@@ -57,6 +72,7 @@ const main = async () => {
         httpOnly: true, // JS frontend cannot access the cookie
         secure: __prod__, // Cookie only works in https
         sameSite: 'lax', // Protection against CSRF
+        domain: __prod__ ? '.vercel.app' : undefined,
       },
       secret: process.env.SESSION_SECRET as string,
       saveUninitialized: false, // Don't save empty sessions, right from the start
@@ -69,7 +85,12 @@ const main = async () => {
       resolvers: [UserResolver, PostResolver],
       validate: false,
     }),
-    context: ({ req, res }): Context => ({ req, res, connection, dataLoaders: buildDataLoaders() }),
+    context: ({ req, res }): Context => ({
+      req,
+      res,
+      connection,
+      dataLoaders: buildDataLoaders(),
+    }),
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
   })
 

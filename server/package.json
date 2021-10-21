@@ -4,7 +4,9 @@
   "description": "Reddit-liked app that integrates many techs",
   "main": "index.js",
   "scripts": {
-    "start": "tsc -w & nodemon dist/index.js"
+    "dev": "tsc -w & nodemon dist/index.js",
+    "start": "node dist/index.js",
+    "build": "rm -rf dist && tsc"
   },
   "author": "Madlife",
   "license": "MIT",

@@ -25,6 +25,9 @@
 */yarn-debug.log*
 */yarn-error.log*
 
+# Orm config
+*/ormconfig.json
+
 # local env files
 */.env
 */.env.local
